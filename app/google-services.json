@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "314465611068",
+    "project_id": "splity-6883d",
+    "storage_bucket": "splity-6883d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:314465611068:android:50a0e048f42a95e3750239",
+        "android_client_info": {
+          "package_name": "com.example.splity"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBVuNiaBjeoZhMZdtwOhQ508DK06HTMr_M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
