@@ -1,5 +1,6 @@
 package com.example.splity
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -13,6 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
@@ -24,9 +26,15 @@ class GroupsFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: GroupAdapter
     private val groups = mutableListOf<Group>()
+    private lateinit var auth: FirebaseAuth
 
     companion object {
         private const val TAG = "GroupsFragment"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        auth = FirebaseAuth.getInstance()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -45,7 +53,12 @@ class GroupsFragment : Fragment() {
         buttonAddGroup.setOnClickListener {
             val groupName = editTextGroupName.text.toString()
             if (groupName.isNotEmpty()) {
-                createGroup(groupName)
+                if (auth.currentUser != null) {
+                    createGroup(groupName)
+                } else {
+                    Toast.makeText(context, "Please log in to create a group", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(activity, LoginActivity::class.java))
+                }
             } else {
                 Toast.makeText(context, "Please enter a group name", Toast.LENGTH_SHORT).show()
             }
@@ -59,9 +72,10 @@ class GroupsFragment : Fragment() {
     private fun createGroup(groupName: String) {
         lifecycleScope.launch {
             try {
-                val currentUserId = withContext(Dispatchers.IO) {
-                    FirebaseManager.getCurrentUserId() ?: throw Exception("User not logged in")
-                }
+                Log.d(TAG, "Attempting to create group: $groupName")
+                val currentUser = auth.currentUser
+                Log.d(TAG, "Current user: ${currentUser?.uid ?: "No user logged in"}")
+                val currentUserId = currentUser?.uid ?: throw Exception("User not logged in")
                 withContext(Dispatchers.IO) {
                     FirebaseManager.createGroup(groupName, listOf(currentUserId))
                 }
@@ -79,11 +93,15 @@ class GroupsFragment : Fragment() {
     }
 
     private fun loadGroups() {
+        if (auth.currentUser == null) {
+            Toast.makeText(context, "Please log in to view groups", Toast.LENGTH_LONG).show()
+            startActivity(Intent(activity, LoginActivity::class.java))
+            return
+        }
+
         lifecycleScope.launch {
             try {
-                val currentUserId = withContext(Dispatchers.IO) {
-                    FirebaseManager.getCurrentUserId() ?: throw Exception("User not logged in")
-                }
+                val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in")
                 FirebaseManager.database.child("groups")
                     .orderByChild("members/$currentUserId")
                     .equalTo(true)
