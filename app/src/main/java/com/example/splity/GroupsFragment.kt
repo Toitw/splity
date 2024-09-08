@@ -44,7 +44,10 @@ class GroupsFragment : Fragment() {
         emptyStateTextView = view.findViewById(R.id.textViewEmptyState)
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapter = GroupAdapter(groups) { group ->
-            Toast.makeText(context, "Clicked on group: ${group.name}", Toast.LENGTH_SHORT).show()
+            val intent = Intent(activity, GroupDetailActivity::class.java)
+            intent.putExtra("GROUP_ID", group.id)
+            intent.putExtra("GROUP_NAME", group.name)
+            startActivity(intent)
         }
         recyclerView.adapter = adapter
 
@@ -152,6 +155,7 @@ class GroupAdapter(
     class GroupViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val textViewGroupName: TextView = view.findViewById(R.id.textViewGroupName)
         val textViewMemberCount: TextView = view.findViewById(R.id.textViewMemberCount)
+        val textViewBalance: TextView = view.findViewById(R.id.textViewBalance)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GroupViewHolder {
@@ -163,6 +167,13 @@ class GroupAdapter(
         val group = groups[position]
         holder.textViewGroupName.text = group.name
         holder.textViewMemberCount.text = "${group.members.size} members"
+
+        // Calculate and display balance
+        FirebaseManager.calculateBalances(group.id) { balances ->
+            val currentUserId = FirebaseManager.getCurrentUserId()
+            val userBalance = balances[currentUserId] ?: 0.0
+            holder.textViewBalance.text = String.format("Balance: $%.2f", userBalance)
+        }
 
         holder.itemView.setOnClickListener {
             onGroupClick(group)

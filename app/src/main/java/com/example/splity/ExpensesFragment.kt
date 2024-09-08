@@ -4,10 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -28,10 +26,13 @@ class ExpensesFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: ExpenseAdapter
     private val expenses = mutableListOf<Expense>()
-    private val groups = mutableListOf<Group>()
+    private lateinit var groupId: String
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_expenses, container, false)
+
+        groupId = arguments?.getString("GROUP_ID") ?: return view
+
         recyclerView = view.findViewById(R.id.recyclerViewExpenses)
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapter = ExpenseAdapter(expenses)
@@ -40,12 +41,9 @@ class ExpensesFragment : Fragment() {
         val buttonAddExpense: Button = view.findViewById(R.id.buttonAddExpense)
         val editTextDescription: EditText = view.findViewById(R.id.editTextDescription)
         val editTextAmount: EditText = view.findViewById(R.id.editTextAmount)
-        val spinnerGroup: Spinner = view.findViewById(R.id.spinnerGroup)
-
-        loadGroups(spinnerGroup)
 
         buttonAddExpense.setOnClickListener {
-            addExpense(editTextDescription, editTextAmount, spinnerGroup)
+            addExpense(editTextDescription, editTextAmount)
         }
 
         loadExpenses()
@@ -53,19 +51,18 @@ class ExpensesFragment : Fragment() {
         return view
     }
 
-    private fun addExpense(editTextDescription: EditText, editTextAmount: EditText, spinnerGroup: Spinner) {
+    private fun addExpense(editTextDescription: EditText, editTextAmount: EditText) {
         val description = editTextDescription.text.toString()
         val amount = editTextAmount.text.toString().toDoubleOrNull()
-        val selectedGroup = spinnerGroup.selectedItem as? Group
 
-        if (description.isNotEmpty() && amount != null && selectedGroup != null) {
+        if (description.isNotEmpty() && amount != null) {
             CoroutineScope(Dispatchers.Main).launch {
                 try {
                     val currentUserId = withContext(Dispatchers.IO) {
                         FirebaseManager.getCurrentUserId() ?: throw Exception("User not logged in")
                     }
                     withContext(Dispatchers.IO) {
-                        FirebaseManager.addExpense(selectedGroup.id, description, amount, currentUserId, selectedGroup.members)
+                        FirebaseManager.addExpense(groupId, description, amount, currentUserId, listOf(currentUserId))
                     }
                     editTextDescription.text.clear()
                     editTextAmount.text.clear()
@@ -79,52 +76,21 @@ class ExpensesFragment : Fragment() {
         }
     }
 
-    private fun loadGroups(spinner: Spinner) {
-        FirebaseManager.database.child("groups").addListenerForSingleValueEvent(object : ValueEventListener {
+    private fun loadExpenses() {
+        FirebaseManager.getGroupExpenses(groupId).addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                groups.clear()
-                for (groupSnapshot in snapshot.children) {
-                    val group = groupSnapshot.getValue(Group::class.java)
-                    group?.let { groups.add(it) }
+                expenses.clear()
+                for (expenseSnapshot in snapshot.children) {
+                    val expense = expenseSnapshot.getValue(Expense::class.java)
+                    expense?.let { expenses.add(it) }
                 }
-                val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, groups.map { it.name })
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                spinner.adapter = adapter
+                adapter.notifyDataSetChanged()
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Toast.makeText(context, "Error loading groups: ${error.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Error loading expenses: ${error.message}", Toast.LENGTH_SHORT).show()
             }
         })
-    }
-
-    private fun loadExpenses() {
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val currentUserId = withContext(Dispatchers.IO) {
-                    FirebaseManager.getCurrentUserId() ?: throw Exception("User not logged in")
-                }
-                FirebaseManager.database.child("expenses")
-                    .orderByChild("splitBetween/$currentUserId")
-                    .equalTo(true)
-                    .addValueEventListener(object : ValueEventListener {
-                        override fun onDataChange(snapshot: DataSnapshot) {
-                            expenses.clear()
-                            for (expenseSnapshot in snapshot.children) {
-                                val expense = expenseSnapshot.getValue(Expense::class.java)
-                                expense?.let { expenses.add(it) }
-                            }
-                            adapter.notifyDataSetChanged()
-                        }
-
-                        override fun onCancelled(error: DatabaseError) {
-                            Toast.makeText(context, "Error loading expenses: ${error.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    })
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 }
 
