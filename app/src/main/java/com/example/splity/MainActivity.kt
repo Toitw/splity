@@ -20,8 +20,7 @@ class MainActivity : AppCompatActivity() {
         // Check if user is logged in
         if (auth.currentUser == null) {
             // Not logged in, send to LoginActivity
-            startActivity(Intent(this, LoginActivity::class.java))
-            finish()
+            navigateToLogin()
             return
         }
 
@@ -59,11 +58,17 @@ class MainActivity : AppCompatActivity() {
         return when (item.itemId) {
             R.id.action_logout -> {
                 auth.signOut()
-                startActivity(Intent(this, LoginActivity::class.java))
-                finish()
+                navigateToLogin()
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    private fun navigateToLogin() {
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }

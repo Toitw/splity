@@ -43,9 +43,10 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.6.0")
     implementation("androidx.navigation:navigation-ui-ktx:2.6.0")
     implementation("androidx.recyclerview:recyclerview:1.3.0")
+    implementation("com.google.android.gms:play-services-safetynet:17.0.1")
 
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.1.0"))
+    implementation(platform("com.google.firebase:firebase-bom:32.3.1"))
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
