@@ -2,6 +2,8 @@ package com.example.splity
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 
 data class User(
@@ -27,7 +29,7 @@ data class Expense(
 )
 
 object FirebaseManager {
-    val database = FirebaseDatabase.getInstance().reference
+    val database = Firebase.database("https://splity-6883d-default-rtdb.europe-west1.firebasedatabase.app/").reference
     private val auth = FirebaseAuth.getInstance()
 
     fun getCurrentUserId(): String? = auth.currentUser?.uid

@@ -27,6 +27,7 @@ class GroupsFragment : Fragment() {
     private lateinit var adapter: GroupAdapter
     private val groups = mutableListOf<Group>()
     private lateinit var auth: FirebaseAuth
+    private lateinit var emptyStateTextView: TextView
 
     companion object {
         private const val TAG = "GroupsFragment"
@@ -40,10 +41,10 @@ class GroupsFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_groups, container, false)
         recyclerView = view.findViewById(R.id.recyclerViewGroups)
+        emptyStateTextView = view.findViewById(R.id.textViewEmptyState)
         recyclerView.layoutManager = LinearLayoutManager(context)
         adapter = GroupAdapter(groups) { group ->
             Toast.makeText(context, "Clicked on group: ${group.name}", Toast.LENGTH_SHORT).show()
-            // TODO: Navigate to group details or perform other actions
         }
         recyclerView.adapter = adapter
 
@@ -82,6 +83,7 @@ class GroupsFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     view?.findViewById<EditText>(R.id.editTextGroupName)?.text?.clear()
                     Toast.makeText(context, "Group created successfully", Toast.LENGTH_SHORT).show()
+                    loadGroups() // Reload groups after creating a new one
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating group", e)
@@ -112,7 +114,7 @@ class GroupsFragment : Fragment() {
                                 val group = groupSnapshot.getValue(Group::class.java)
                                 group?.let { groups.add(it) }
                             }
-                            adapter.notifyDataSetChanged()
+                            updateUI()
                         }
 
                         override fun onCancelled(error: DatabaseError) {
@@ -124,6 +126,20 @@ class GroupsFragment : Fragment() {
                 Log.e(TAG, "Error in loadGroups", e)
                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun updateUI() {
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (groups.isEmpty()) {
+                emptyStateTextView.visibility = View.VISIBLE
+                recyclerView.visibility = View.GONE
+            } else {
+                emptyStateTextView.visibility = View.GONE
+                recyclerView.visibility = View.VISIBLE
+                adapter.notifyDataSetChanged()
+            }
+            Log.d(TAG, "UI updated. Group count: ${groups.size}")
         }
     }
 }
